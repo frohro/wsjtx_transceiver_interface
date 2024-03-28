@@ -11,9 +11,15 @@ import os
 
 #Import weakmon to use encoders
 import sys
+import sys
+import os
+
 sys.path.append(os.path.expandvars('$WEAKMON'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from ft8 import FT8Send
 from ft4 import FT4Send
+
+
 
 #Read configuration file
 configs_file = open('transceiver_config.yml', 'r')
@@ -68,7 +74,7 @@ def encode_ft4(msg):
 
 def load_symbols(symbols):
     print("Load symbols into transmitter..")
-    puerto.write('m')
+    puerto.write(b'm')
     count = 0
     for symbol in symbols:
         puerto.write(struct.pack('>B', symbol))
@@ -76,9 +82,9 @@ def load_symbols(symbols):
         #Wait to avoid Arduino serial buffer overflow
         if count % 50 == 0:
             time.sleep(0.05)
-    puerto.write('\0')
+    puerto.write(b'\0')
     resp = puerto.read(512)
-    if resp == 'm':
+    if resp == b'm':
         print("Load OK")
     else:
         print(resp)
@@ -86,21 +92,21 @@ def load_symbols(symbols):
 
 def change_freq(new_freq):
     global tx_freq
-    print "Change TX frequency to:", new_freq
-    puerto.write('o')
+    print ("Change TX frequency to:", new_freq)
+    puerto.write(bqq'o')
     for kk in range(2):
         puerto.write(struct.pack('>B', (new_freq >> 8*kk) & 0xFF))
     resp = puerto.read(1)        
-    if resp == 'o':
+    if resp == b'o':
         print("New freq OK")
         tx_freq = new_freq
         
 
 def change_mode(new_mode):
     global mode
-    puerto.write('s')
+    puerto.write(b's')
     resp = puerto.read(1)        
-    if resp == 's':
+    if resp == b's':
         mode = new_mode
         print("Switched to: {0}".format(new_mode))
         current_msg = ''    
@@ -129,7 +135,7 @@ def transmit():
         time.sleep(1)
     else:
         print("TX!")
-        puerto.write('t')                
+        puerto.write(b't')                
 
 def check_time_window(utc_time):
     time_window = 15 if 'FT8' in mode else 7
@@ -143,9 +149,9 @@ def check_time_window(utc_time):
 print("\n\nWait for transmitter ready...")
 while True:
     time.sleep(1)    
-    puerto.write('r')
+    puerto.write(b'r')
     x = puerto.read()
-    if x == 'r':
+    if x == b'r':
         print("Transmitter ready!")
         break
 
@@ -177,14 +183,14 @@ try:
                 utc_time = datetime.datetime.utcnow()
                 tx_now = check_time_window(utc_time)                
                 if tx_now:
-                    puerto.write('p')
+                    puerto.write(b'p')
                 message = StatusPacket.TxMessage
                 message = message.replace('<', '')
                 message = message.replace('>', '')                
                 new_msg(message.strip())
                 if tx_now:
                     transmit()
-                print "Time: {0}:{1}:{2}".format(utc_time.hour, utc_time.minute, utc_time.second)
+                print( "Time: {0}:{1}:{2}".format(utc_time.hour, utc_time.minute, utc_time.second))
 
 
 finally:
