@@ -16,9 +16,9 @@ import sys
 import sys
 import os
 
-sys.path.append(os.path.expandvars('$WEAKMON'))
-print(os.path.expandvars('$WEAKMON'))
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+# sys.path.append(os.path.expandvars('$WEAKMON'))
+# print(os.path.expandvars('$WEAKMON'))
+# sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from ft8 import FT8Send
 from ft4 import FT4Send
 
