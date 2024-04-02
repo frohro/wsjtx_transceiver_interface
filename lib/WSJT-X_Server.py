@@ -69,7 +69,7 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
 # to look at the WSJT-X source to see if the other log files are
 # written to or not.  The ADIF is not unless you OK the dialog.
 #
-# If alling CQ:
+# If calling CQ:
 # Looking for these responses
 #
 # <mycall> <dxcall> <grid>
