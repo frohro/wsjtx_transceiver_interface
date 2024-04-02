@@ -93,7 +93,7 @@ def load_symbols(symbols):
 def change_freq(new_freq):
     global tx_freq
     print ("Change TX frequency to:", new_freq)
-    puerto.write(bqq'o')
+    puerto.write(b'o')
     for kk in range(2):
         puerto.write(struct.pack('>B', (new_freq >> 8*kk) & 0xFF))
     resp = puerto.read(1)        
