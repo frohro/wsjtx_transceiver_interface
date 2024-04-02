@@ -14,14 +14,10 @@ import sys
 import sys
 import os
 
-sys.path.append(os.path.expandvars('$WEAKMON'))
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-#from /home/frohro/Projects/weakmon.ft8 import FT8Send
+# sys.path.append(os.path.expandvars('$WEAKMON'))
+# sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from ft8 import FT8Send
 from ft4 import FT4Send
-from weakmon.ft8 import FT8Send
-from weakmon.ft4 import FT4Send
-
-
 
 #Read configuration file
 configs_file = open('transceiver_config.yml', 'r')
