@@ -114,6 +114,8 @@ def new_msg(msg):
     global mode
     if msg != current_msg:
         print("Message: {0}".format(msg))
+        print(msg)
+        print('len(msg)',len(msg))
         if 'FT8' in mode:
             symbols = encode_ft8(msg)
         else:
