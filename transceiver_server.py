@@ -13,13 +13,15 @@ import os
 
 #Import weakmon to use encoders
 import sys
-import sys
 import os
+
 
 # sys.path.append(os.path.expandvars('$WEAKMON'))
 # print(os.path.expandvars('$WEAKMON'))
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 #sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
+
+print(sys.path)
 from ft8 import FT8Send
 from ft4 import FT4Send
 
@@ -33,7 +35,7 @@ baudrate    = configs['baudrate']
 try:
     puerto = serial.Serial(serial_port, baudrate, timeout=0.5)
 except serial.serialutil.SerialException:
-    print("\nNo se puede abrir puerto: " + serial_port + "\n")
+    print("\nCould not connect to serial port: " + serial_port + "\n")
     exit(1)
 
 #Global variables
@@ -57,9 +59,18 @@ ft4_encoder = FT4Send()
 def encode_ft8(msg):
     try:
         a77 = ft8_encoder.pack(msg, 1)
+        # print(a77)
+        # print("Type (a77): ", type(a77))
+    except Exception as e:
+        print("FT8 encoder error, check message 1!")
+        print(f"Exception type: {type(e).__name__}")
+        print(f"Exception message: {str(e)}")
+    try:
         symbols = ft8_encoder.make_symbols(a77)
-    except:
-        print("FT8 encoder error, check message!")
+    except Exception as e:
+        print("FT8 encoder error, check message 2!")
+        print(f"Exception type: {type(e).__name__}")
+        print(f"Exception message: {str(e)}")
         symbols = None
         time.sleep(3)
     return symbols
@@ -67,9 +78,20 @@ def encode_ft8(msg):
 def encode_ft4(msg):
     try:
         a77 = ft4_encoder.pack(msg, 1)
+    except Exception as e:
+        print("FT4 encoder error, check message 1!")
+        print(f"Exception type: {type(e).__name__}")
+        print(f"Exception message: {str(e)}")
+        symbols = None
+        time.sleep(3)
+    try:
         symbols = ft4_encoder.make_symbols(a77)
-    except:
+        print("Symbols: ", symbols)
+        print('len(symbols)', len(symbols))
+    except Exception as e:
         print("FT4 encoder error, check message!")
+        print(f"Exception type: {type(e).__name__}")
+        print(f"Exception message: {str(e)}")
         symbols = None
         time.sleep(3)
     return symbols
@@ -85,7 +107,8 @@ def load_symbols(symbols):
         if count % 50 == 0:
             time.sleep(0.05)
     puerto.write(b'\0')
-    resp = puerto.read(512)
+    time.sleep(0.05)
+    resp = puerto.read(1)
     if resp == b'm':
         print("Load OK")
     else:
@@ -98,20 +121,46 @@ def change_freq(new_freq):
     puerto.write(b'o')
     for kk in range(2):
         puerto.write(struct.pack('>B', (new_freq >> 8*kk) & 0xFF))
+    time.sleep(0.05)
     resp = puerto.read(1)        
     if resp == b'o':
-        print("New freq OK")
+        print("New freq set to: {0}".format(new_freq))
         tx_freq = new_freq
         
 
-def change_mode(new_mode):
+# def set_mode(new_mode):
+#     global mode
+#     if mode != new_mode:
+#         puerto.write(b's')
+#         time.sleep(3)
+#         resp = puerto.read(512) 
+#         print("resp = ", resp)       
+#         if resp == b's':
+#             mode = new_mode
+#             print("Switched to: {0}".format(new_mode))
+
+def set_mode(new_mode):
     global mode
-    puerto.write(b's')
-    resp = puerto.read(1)        
-    if resp == b's':
-        mode = new_mode
-        print("Switched to: {0}".format(new_mode))
-        current_msg = ''    
+    if new_mode == 'FT8':
+        puerto.write(b'e')
+        time.sleep(.05)
+        resp = puerto.read(1) 
+        print("resp = ", resp)       
+        if resp == b'e':
+            mode = new_mode
+            print("Switched to: {0}".format(new_mode))  
+            return True
+    elif new_mode == 'FT4':
+        puerto.write(b'f')
+        time.sleep(0.05)
+        resp = puerto.read(1) 
+        print("resp = ", resp)       
+        if resp == b'f':
+            mode = new_mode
+            print("Switched to: {0}".format(new_mode))
+            return True
+    else:
+        return False
 
 def new_msg(msg):
     global current_msg
@@ -123,6 +172,7 @@ def new_msg(msg):
         if 'FT8' in mode:
             symbols = encode_ft8(msg)
         else:
+            print('Encoding FT4')
             symbols = encode_ft4(msg)            
         if symbols.any():
             #symbols = [kk for kk in range(79)]
@@ -143,6 +193,7 @@ def transmit():
 
 def check_time_window(utc_time):
     time_window = 15 if 'FT8' in mode else 7
+    print("Time window: ", time_window )
     rm = utc_time.second % time_window
     if rm > 1 and rm < time_window-1:
         return False
@@ -154,6 +205,7 @@ print("\n\nWait for transmitter ready...")
 while True:
     time.sleep(1)    
     puerto.write(b'r')
+    time.sleep(0.05)
     x = puerto.read()
     if x == b'r':
         print("Transmitter ready!")
@@ -174,12 +226,16 @@ try:
             #Check TX frequency and update transceiver
             new_freq = StatusPacket.TxDF
             new_mode = StatusPacket.TxMode.strip()
+            print('new_mode', new_mode)
             
             if new_freq != tx_freq:
                 change_freq(new_freq)
 
             if new_mode != mode:
-                change_mode(new_mode)
+                print("Mode before: {0}".format(mode))
+                if not set_mode(new_mode):
+                    print("Invalid mode: {0}".format(new_mode))
+                print("New mode after: {0}".format(mode))
 
             #Check if TX is enabled
             if StatusPacket.Transmitting == 1:
@@ -192,6 +248,7 @@ try:
                 message = message.replace('<', '')
                 message = message.replace('>', '')                
                 new_msg(message.strip())
+                
                 if tx_now:
                     transmit()
                 print( "Time: {0}:{1}:{2}".format(utc_time.hour, utc_time.minute, utc_time.second))
